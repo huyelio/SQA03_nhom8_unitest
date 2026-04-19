@@ -551,6 +551,63 @@ Bảng dưới đây đối chiếu **phạm vi đã khai báo trong báo cáo /
 
 > **Lưu ý phạm vi:** Unit test tập trung tầng **service / repository** và thuật toán. **Controller**, **một số job**, **dịch vụ AI/ảnh thật** thường nằm ngoài phạm vi hoặc cần integration/E2E riêng.
 
+### 7.5. Bằng chứng thực thi (screenshot) — lệnh đã dùng và cách làm báo cáo
+
+Phần này trả lời hai yêu cầu thường gặp trong báo cáo: **(1) tóm tắt kết quả chạy test + ảnh chụp**, **(2) coverage + ảnh chụp** (Coverage.py cho PyTest, JaCoCo cho Java).
+
+#### Các lệnh đã chạy khi kiểm tra (tham khảo)
+
+**Java — AuthService (Maven + JUnit):**
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-21"
+cd D:\School\ki2_nam4\DBCLPM\srcCode\BE\AuthService
+mvn test
+```
+
+Kết quả mong đợi ở cuối log: dòng dạng `[INFO] Tests run: 28, Failures: 0, Errors: 0, Skipped: 0` và `[INFO] BUILD SUCCESS`. **Chụp màn hình** cửa sổ PowerShell/Terminal phần cuối log (có số pass/fail rõ ràng).
+
+**Python — từng microservice (pytest + Coverage.py), ví dụ Food Detection:**
+
+```powershell
+cd D:\School\ki2_nam4\DBCLPM\srcCode\BE\Food_Detection_Microservices
+python -m coverage erase
+python -m coverage run -m pytest tests/ -v
+python -m coverage report
+python -m coverage html -d htmlcov
+```
+
+Lặp lại tương tự trong thư mục `BE\Skin_Analyzer_Microservices` và `BE\Fitness_Coach_AI` (đổi `-d htmlcov` nếu muốn thư mục tên khác cho từng service).
+
+#### (1) Execution Report — bạn cần làm gì để có ảnh + số pass/fail
+
+1. Mở **PowerShell** hoặc **Terminal** trong VS Code / Cursor.
+2. Chạy đúng các lệnh ở trên (Java một lần; Python từng thư mục `tests/`).
+3. **Chụp màn hình** (`Win + Shift + S` hoặc Snipping Tool):
+   - Ảnh 1: phần cuối log Maven có `Tests run: … Failures: …` và `BUILD SUCCESS` / `BUILD FAILURE`.
+   - Ảnh 2–4: từng service Python có dòng `X passed` / `FAILED` và bảng tóm tắt nếu có.
+4. Trong Word/Excel/PDF báo cáo, viết một đoạn tóm tắt, ví dụ: _“AuthService: 28 test, 0 fail. Food Detection: 11 passed. Skin: 4 passed. Fitness AI: 3 passed.”_ (số liệu lấy đúng từ log lần chạy của bạn).
+
+Nếu muốn một lệnh gom nhiều phần, có thể dùng script `run_tests.ps1` ở thư mục gốc `srcCode` (cần JDK 21 và Python đã cài pytest/coverage), rồi **chụp màn hình** output của script.
+
+#### (2) Code Coverage Report — bạn cần làm gì để có ảnh từ công cụ
+
+**Python (Coverage.py):**
+
+1. Sau `coverage run` + `coverage html -d htmlcov`, mở file trong trình duyệt:
+   - Food: `BE\Food_Detection_Microservices\htmlcov\index.html`
+   - Skin: `BE\Skin_Analyzer_Microservices\htmlcov\index.html` (sau khi bạn tạo)
+   - Fitness: `BE\Fitness_Coach_AI\htmlcov\index.html` (sau khi bạn tạo)
+2. **Chụp màn hình** trang tổng quan (có tỷ lệ % từng file) — đó là bằng chứng coverage theo đúng yêu cầu “Coverage.py cho PyTest”.
+3. (Tuỳ chọn) Chụp thêm một file `.py` cụ thể khi click vào để thấy dòng nào được cover.
+
+**Java (JaCoCo — tạo khi chạy `mvn test` vì plugin đã cấu hình trong `pom.xml`):**
+
+1. Mở trong trình duyệt: `BE\AuthService\target\site\jacoco\index.html`
+2. **Chụp màn hình** trang index (tổng % coverage) và có thể thêm một package (vd. `service.impl`) để minh họa.
+
+**Tóm tắt trong báo cáo:** Ghi rõ công cụ (Coverage.py / JaCoCo), ngày chạy, lệnh đã dùng, đính kèm ảnh; với Coverage.py có thể trích thêm bảng text từ `coverage report` (cột `Cover`, `TOTAL`).
+
 ---
 
 ## Ghi Chú Bảo Mật
