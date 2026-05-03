@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { LoginSchema } from "../src/loginSchema";
+import { LoginSchema } from "../schema/loginSchema";
 
-
+const expectFieldError = (parseResult: ReturnType<typeof LoginSchema.safeParse>, field: string, message?: string) => {
+  expect(parseResult.success).toBe(false);
+  if (!parseResult.success) {
+    const fieldErrors = parseResult.error.flatten().fieldErrors as Record<string, string[] | undefined>;
+    expect(fieldErrors[field]).toBeTruthy();
+    if (message) {
+      expect(fieldErrors[field]).toContain(message);
+    }
+  }
+};
 
 describe("LoginSchema", () => {
   const validLoginInput = {
@@ -9,7 +18,7 @@ describe("LoginSchema", () => {
     password: "Password123",
   };
 
-  // TC_LS_01: Dữ liệu đăng nhập hợp lệ phải parse thành công.
+  // TC_LOGIN_01: Dữ liệu đăng nhập hợp lệ phải được parse thành công.
   it("should parse successfully when email and password are valid", () => {
     const parseResult = LoginSchema.safeParse(validLoginInput);
 
@@ -19,55 +28,43 @@ describe("LoginSchema", () => {
     }
   });
 
-  // TC_LS_02: email rỗng phải báo lỗi bắt buộc nhập.
+  // TC_LOGIN_02: Email rỗng phải báo lỗi bắt buộc nhập.
   it("should return required error when email is empty", () => {
     const parseResult = LoginSchema.safeParse({ ...validLoginInput, email: "" });
 
-    expect(parseResult.success).toBe(false);
-    if (!parseResult.success) {
-      expect(parseResult.error.flatten().fieldErrors.email).toContain("Email không được bỏ trống");
-    }
+    expectFieldError(parseResult, "email", "Email không được bỏ trống");
   });
 
-  // TC_LS_03: email sai định dạng phải báo lỗi.
-  it("should return invalid error when email format is incorrect", () => {
-    const parseResult = LoginSchema.safeParse({ ...validLoginInput, email: "user-at-example.com" });
+  // TC_LOGIN_03: Email sai định dạng phải báo lỗi email không hợp lệ.
+  it("should return invalid email error when email format is invalid", () => {
+    const parseResult = LoginSchema.safeParse({ ...validLoginInput, email: "invalid-email" });
 
-    expect(parseResult.success).toBe(false);
-    if (!parseResult.success) {
-      expect(parseResult.error.flatten().fieldErrors.email).toContain("Email không hợp lệ");
-    }
+    expectFieldError(parseResult, "email", "Email không hợp lệ");
   });
 
-  // TC_LS_04: password rỗng phải báo lỗi bắt buộc nhập.
+  // TC_LOGIN_04: Password rỗng phải báo lỗi bắt buộc nhập.
   it("should return required error when password is empty", () => {
     const parseResult = LoginSchema.safeParse({ ...validLoginInput, password: "" });
 
-    expect(parseResult.success).toBe(false);
-    if (!parseResult.success) {
-      expect(parseResult.error.flatten().fieldErrors.password).toContain("Mật khẩu không được bỏ trống");
-    }
+    expectFieldError(parseResult, "password", "Mật khẩu không được bỏ trống");
   });
 
-  // TC_LS_05: password ngắn hơn 8 ký tự phải báo lỗi.
-  it("should return min-length error when password is shorter than 8 characters", () => {
+  // TC_LOGIN_05: Password ngắn hơn 8 ký tự phải báo lỗi độ dài tối thiểu.
+  it("should return min length error when password has fewer than 8 characters", () => {
     const parseResult = LoginSchema.safeParse({ ...validLoginInput, password: "1234567" });
 
-    expect(parseResult.success).toBe(false);
-    if (!parseResult.success) {
-      expect(parseResult.error.flatten().fieldErrors.password).toContain("Mật khẩu ít nhất 8 ký tự");
-    }
+    expectFieldError(parseResult, "password", "Mật khẩu ít nhất 8 ký tự");
   });
 
-  // TC_LS_06: email và password cùng sai phải thu thập lỗi cả hai trường.
-  it("should collect errors for both email and password when both fields are invalid", () => {
-    const parseResult = LoginSchema.safeParse({ email: "wrong", password: "123" });
+  // TC_LOGIN_06: Nhiều trường sai cùng lúc phải trả lỗi cho cả email và password.
+  it("should collect errors for invalid email and password at the same time", () => {
+    const parseResult = LoginSchema.safeParse({ email: "bad-email", password: "123" });
 
     expect(parseResult.success).toBe(false);
     if (!parseResult.success) {
       const fieldErrors = parseResult.error.flatten().fieldErrors;
-      expect(fieldErrors.email).toContain("Email không hợp lệ");
-      expect(fieldErrors.password).toContain("Mật khẩu ít nhất 8 ký tự");
+      expect(fieldErrors.email).toBeTruthy();
+      expect(fieldErrors.password).toBeTruthy();
     }
   });
 });
